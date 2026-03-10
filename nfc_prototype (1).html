@@ -1,0 +1,1725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aramco NFC Driver App — Interactive Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --aramco-green: #00703C;
+    --aramco-dark: #004225;
+    --aramco-teal: #007A6E;
+    --accent: #00B050;
+    --warn: #F5A623;
+    --danger: #E53935;
+    --bg: #0D1117;
+    --surface: #161B22;
+    --surface2: #21262D;
+    --surface3: #30363D;
+    --border: #30363D;
+    --text: #E6EDF3;
+    --text2: #8B949E;
+    --text3: #6E7681;
+    --white: #ffffff;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --phone-w: 375px;
+    --phone-h: 780px;
+  }
+
+  body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    background: #060A0F;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    width: 100%;
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: rgba(13,17,23,0.95);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .logo-badge {
+    width: 36px; height: 36px;
+    background: var(--aramco-green);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; color: white;
+  }
+  .header-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .header-sub { font-size: 12px; color: var(--text2); margin-top: 1px; }
+  .header-badge {
+    background: rgba(0,112,60,0.15);
+    border: 1px solid rgba(0,112,60,0.4);
+    color: var(--accent);
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* ── LAYOUT ── */
+  .workspace {
+    display: flex;
+    gap: 0;
+    width: 100%;
+    max-width: 1400px;
+    padding: 40px 30px;
+    align-items: flex-start;
+  }
+
+  /* ── FLOW SIDEBAR ── */
+  .sidebar {
+    width: 220px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 100px;
+  }
+  .sidebar-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    padding-left: 4px;
+  }
+  .flow-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+    margin-bottom: 4px;
+  }
+  .flow-item:hover { background: var(--surface); border-color: var(--border); }
+  .flow-item.active {
+    background: rgba(0,112,60,0.12);
+    border-color: rgba(0,112,60,0.35);
+  }
+  .flow-num {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 600; color: var(--text2);
+    flex-shrink: 0;
+  }
+  .flow-item.active .flow-num {
+    background: var(--aramco-green);
+    color: white;
+  }
+  .flow-label { font-size: 13px; color: var(--text2); font-weight: 500; }
+  .flow-item.active .flow-label { color: var(--accent); }
+  .flow-arrow {
+    width: 1px;
+    height: 16px;
+    background: var(--border);
+    margin: 0 0 4px 22px;
+  }
+
+  /* ── PHONE FRAME ── */
+  .phone-area {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0 40px;
+  }
+  .phone-outer {
+    width: var(--phone-w);
+    position: relative;
+  }
+  .phone-frame {
+    width: var(--phone-w);
+    height: var(--phone-h);
+    background: #111418;
+    border-radius: 44px;
+    border: 3px solid #2A3038;
+    box-shadow:
+      0 0 0 1px #1C2128,
+      0 40px 80px rgba(0,0,0,0.6),
+      inset 0 1px 0 rgba(255,255,255,0.05);
+    overflow: hidden;
+    position: relative;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 0; left: 50%; transform: translateX(-50%);
+    width: 126px; height: 34px;
+    background: #111418;
+    border-radius: 0 0 20px 20px;
+    z-index: 20;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .notch-cam {
+    width: 10px; height: 10px;
+    background: #1C2128;
+    border-radius: 50%;
+    border: 1px solid #2A3038;
+  }
+  .notch-sensor { width: 30px; height: 4px; background: #1C2128; border-radius: 4px; }
+
+  .phone-screen {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    position: relative;
+    border-radius: 41px;
+  }
+
+  /* Status bar */
+  .status-bar {
+    height: 44px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 24px 8px;
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 10;
+    font-size: 12px; font-weight: 600;
+    color: white;
+  }
+  .status-time { font-family: 'IBM Plex Mono', monospace; font-size: 14px; }
+  .status-icons { display: flex; gap: 5px; align-items: center; }
+
+  /* Screens container */
+  .screens { width: 100%; height: 100%; position: relative; }
+  .screen {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    transform: translateX(30px);
+  }
+  .screen.active {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateX(0);
+  }
+  .screen.exit {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+
+  /* ── SCREEN STYLES ── */
+
+  /* SCREEN 1 — Login */
+  .s-login {
+    background: linear-gradient(160deg, #004225 0%, #002718 40%, #0D1117 100%);
+    display: flex; flex-direction: column;
+    padding: 80px 28px 40px;
+    align-items: center;
+  }
+  .login-logo-wrap {
+    width: 72px; height: 72px;
+    background: rgba(0,112,60,0.2);
+    border: 1px solid rgba(0,112,60,0.4);
+    border-radius: 22px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+  }
+  .login-logo-inner {
+    font-size: 28px; font-weight: 700;
+    background: linear-gradient(135deg, #00B050, #00703C);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .login-title { font-size: 22px; font-weight: 700; color: white; text-align: center; }
+  .login-sub { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 6px; text-align: center; }
+  .aramco-badge {
+    margin-top: 14px;
+    background: rgba(0,112,60,0.15);
+    border: 1px solid rgba(0,112,60,0.3);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 11px; color: var(--accent); font-weight: 500;
+    letter-spacing: 0.05em;
+  }
+  .login-form { width: 100%; margin-top: 40px; display: flex; flex-direction: column; gap: 12px; }
+  .input-group { display: flex; flex-direction: column; gap: 6px; }
+  .input-label { font-size: 11px; color: rgba(255,255,255,0.5); font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }
+  .input-field {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 13px 16px;
+    color: white;
+    font-size: 15px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    outline: none;
+  }
+  .input-field::placeholder { color: rgba(255,255,255,0.25); }
+  .btn-primary {
+    margin-top: 8px;
+    background: linear-gradient(135deg, #00B050, #00703C);
+    border: none;
+    border-radius: 14px;
+    padding: 16px;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    font-family: 'IBM Plex Sans', sans-serif;
+    transition: opacity 0.15s;
+    box-shadow: 0 4px 20px rgba(0,176,80,0.3);
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .login-footer { margin-top: 20px; font-size: 12px; color: rgba(255,255,255,0.3); text-align: center; }
+
+  /* SCREEN 2 — OTP */
+  .s-otp {
+    background: linear-gradient(160deg, #004225 0%, #002718 40%, #0D1117 100%);
+    display: flex; flex-direction: column;
+    padding: 80px 28px 40px;
+    align-items: center;
+  }
+  .otp-icon {
+    width: 64px; height: 64px;
+    background: rgba(0,112,60,0.15);
+    border: 1px solid rgba(0,112,60,0.3);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; margin-bottom: 20px;
+  }
+  .otp-title { font-size: 20px; font-weight: 700; color: white; }
+  .otp-sub { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 8px; text-align: center; line-height: 1.5; }
+  .otp-number { color: var(--accent); font-weight: 600; }
+  .otp-boxes {
+    display: flex; gap: 10px; margin-top: 36px;
+  }
+  .otp-box {
+    width: 52px; height: 60px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; font-weight: 700; color: white;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .otp-box.filled { border-color: var(--accent); background: rgba(0,176,80,0.1); }
+  .otp-box.active { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,176,80,0.2); }
+  .otp-resend { margin-top: 20px; font-size: 13px; color: rgba(255,255,255,0.4); }
+  .otp-resend span { color: var(--accent); cursor: pointer; }
+
+  /* SCREEN 3 — Shift Dashboard */
+  .s-dashboard {
+    background: var(--bg);
+    display: flex; flex-direction: column;
+  }
+  .dash-header {
+    background: linear-gradient(135deg, #004225, #006830);
+    padding: 52px 20px 20px;
+  }
+  .dash-greeting { font-size: 12px; color: rgba(255,255,255,0.6); font-weight: 500; }
+  .dash-name { font-size: 20px; font-weight: 700; color: white; margin-top: 2px; }
+  .dash-shift-row {
+    display: flex; gap: 10px; margin-top: 16px;
+  }
+  .shift-card {
+    flex: 1;
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255,255,255,0.15);
+  }
+  .shift-card-label { font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.05em; }
+  .shift-card-val { font-size: 16px; font-weight: 700; color: white; margin-top: 2px; }
+  .shift-card-sub { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 1px; }
+  .dash-body { flex: 1; padding: 16px; overflow-y: auto; }
+  .section-title {
+    font-size: 11px; font-weight: 600; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 10px;
+  }
+  .progress-bar-wrap {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+  }
+  .progress-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .progress-text { font-size: 13px; color: var(--text2); }
+  .progress-pct { font-size: 13px; font-weight: 700; color: var(--accent); }
+  .progress-track { height: 6px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--aramco-green), var(--accent)); border-radius: 3px; width: 33%; }
+  .visit-list { display: flex; flex-direction: column; gap: 8px; }
+  .visit-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 13px 14px;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .visit-item:hover { border-color: var(--aramco-green); }
+  .visit-item.done { opacity: 0.5; }
+  .visit-item.active-now { border-color: var(--accent); background: rgba(0,176,80,0.05); }
+  .visit-dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+  .dot-done { background: var(--accent); }
+  .dot-active { background: var(--warn); box-shadow: 0 0 0 3px rgba(245,166,35,0.25); }
+  .dot-pending { background: var(--surface3); }
+  .visit-info { flex: 1; }
+  .visit-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .visit-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .visit-status {
+    font-size: 10px; font-weight: 600; padding: 3px 8px;
+    border-radius: 6px;
+  }
+  .status-done { background: rgba(0,176,80,0.15); color: var(--accent); }
+  .status-now { background: rgba(245,166,35,0.15); color: var(--warn); }
+  .status-pending { background: var(--surface2); color: var(--text3); }
+
+  /* Bottom Nav */
+  .bottom-nav {
+    display: flex;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    padding: 10px 0 20px;
+  }
+  .nav-item {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; gap: 4px;
+    cursor: pointer; padding: 4px 0;
+  }
+  .nav-icon { font-size: 20px; }
+  .nav-label { font-size: 10px; color: var(--text3); font-weight: 500; }
+  .nav-item.active .nav-label { color: var(--accent); }
+  .nav-item.active .nav-icon { filter: drop-shadow(0 0 4px var(--accent)); }
+
+  /* SCREEN 4 — NFC Scan */
+  .s-nfc {
+    background: var(--bg);
+    display: flex; flex-direction: column;
+  }
+  .nfc-header {
+    padding: 52px 20px 16px;
+    display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .back-btn {
+    width: 34px; height: 34px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; color: var(--text2);
+    flex-shrink: 0;
+  }
+  .nfc-header-info { flex: 1; }
+  .nfc-header-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .nfc-header-sub { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .nfc-body {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .nfc-point-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    width: 100%;
+    margin-bottom: 28px;
+  }
+  .nfc-point-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+  .nfc-point-name { font-size: 18px; font-weight: 700; color: var(--text); margin-top: 4px; }
+  .nfc-point-meta { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .meta-pill {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px; color: var(--text2);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .nfc-scan-area {
+    width: 200px; height: 200px;
+    position: relative;
+    margin-bottom: 24px;
+  }
+  .nfc-ring {
+    position: absolute; inset: 0;
+    border-radius: 50%;
+    border: 2px solid rgba(0,176,80,0.3);
+    animation: pulse-ring 2s ease-out infinite;
+  }
+  .nfc-ring:nth-child(2) { animation-delay: 0.6s; }
+  .nfc-ring:nth-child(3) { animation-delay: 1.2s; }
+  @keyframes pulse-ring {
+    0% { transform: scale(0.5); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 0; }
+  }
+  .nfc-center {
+    position: absolute; inset: 30px;
+    background: rgba(0,112,60,0.15);
+    border: 2px solid rgba(0,176,80,0.5);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 44px;
+  }
+  .nfc-scan-label { font-size: 14px; font-weight: 600; color: var(--text2); text-align: center; }
+  .nfc-scan-sub { font-size: 12px; color: var(--text3); margin-top: 4px; text-align: center; }
+  .nfc-fallback {
+    margin-top: 20px;
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    width: 100%;
+    cursor: pointer;
+  }
+  .nfc-fallback-text { font-size: 13px; color: var(--text2); }
+  .nfc-fallback-sub { font-size: 11px; color: var(--text3); }
+
+  /* SCREEN 5 — NFC Confirmed */
+  .s-nfc-ok {
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px 28px;
+  }
+  .nfc-ok-icon {
+    width: 100px; height: 100px;
+    background: rgba(0,176,80,0.15);
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 44px;
+    animation: pop-in 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
+    margin-bottom: 24px;
+  }
+  @keyframes pop-in {
+    from { transform: scale(0.5); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .nfc-ok-title { font-size: 22px; font-weight: 700; color: white; text-align: center; }
+  .nfc-ok-sub { font-size: 13px; color: var(--text2); margin-top: 8px; text-align: center; }
+  .nfc-ok-details {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-top: 24px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .detail-row { display: flex; justify-content: space-between; align-items: center; }
+  .detail-key { font-size: 12px; color: var(--text3); }
+  .detail-val { font-size: 13px; font-weight: 600; color: var(--text); }
+  .detail-val.green { color: var(--accent); }
+  .nfc-ok-cta {
+    margin-top: 28px; width: 100%;
+  }
+
+  /* SCREEN 6 — Checklist */
+  .s-checklist {
+    background: var(--bg);
+    display: flex; flex-direction: column;
+  }
+  .checklist-header {
+    padding: 52px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .checklist-progress {
+    display: flex; gap: 4px; padding: 10px 20px 6px;
+  }
+  .cp-dot {
+    flex: 1; height: 3px; border-radius: 2px;
+    background: var(--surface2);
+  }
+  .cp-dot.done { background: var(--accent); }
+  .cp-dot.active { background: var(--warn); }
+  .checklist-count {
+    text-align: center; font-size: 11px; color: var(--text3);
+    padding: 0 20px 8px;
+  }
+  .checklist-count span { color: var(--accent); font-weight: 700; }
+  .checklist-body { flex: 1; padding: 4px 14px; overflow-y: auto; }
+  .checklist-section { margin-bottom: 14px; }
+  .checklist-section-title {
+    font-size: 10px; font-weight: 700;
+    color: var(--text3); text-transform: uppercase;
+    letter-spacing: 0.1em; margin-bottom: 8px;
+    padding-left: 4px;
+  }
+  /* IMAGE-BASED check item */
+  .check-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    transition: all 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .check-item:hover { border-color: var(--accent); }
+  .check-item.checked-item {
+    border-color: var(--accent);
+    background: rgba(0,176,80,0.07);
+  }
+  .check-img {
+    width: 44px; height: 44px; flex-shrink: 0;
+    border-radius: 8px;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .check-item.checked-item .check-img {
+    background: rgba(0,176,80,0.12);
+    border-color: rgba(0,176,80,0.3);
+  }
+  .check-text { flex: 1; min-width: 0; }
+  .check-label { font-size: 12px; color: var(--text); font-weight: 600; line-height: 1.3; }
+  .check-sub { font-size: 10px; color: var(--text3); margin-top: 2px; }
+  .check-box {
+    width: 24px; height: 24px; flex-shrink: 0;
+    border-radius: 8px;
+    border: 2px solid var(--border);
+    background: transparent;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; font-size: 13px;
+  }
+  .check-item.checked-item .check-box {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+  .checklist-footer { padding: 8px 14px 28px; }
+  .checklist-locked {
+    font-size: 11px; color: var(--warn);
+    text-align: center; margin-bottom: 8px;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+
+  /* SCREEN 7 — Data Capture */
+  .s-capture {
+    background: var(--bg);
+    display: flex; flex-direction: column;
+  }
+  .capture-header {
+    padding: 52px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .capture-body { flex: 1; padding: 16px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
+  .field-group { display: flex; flex-direction: column; gap: 6px; }
+  .field-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+  .field-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    outline: none;
+    width: 100%;
+  }
+  .field-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 14px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    outline: none;
+    width: 100%;
+    appearance: none;
+  }
+  .field-row { display: flex; gap: 10px; }
+  .photo-row {
+    display: flex; gap: 8px; margin-top: 4px;
+  }
+  .photo-thumb {
+    width: 64px; height: 64px;
+    border-radius: 10px;
+    overflow: hidden;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-add {
+    width: 64px; height: 64px;
+    background: var(--surface);
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; color: var(--text3); cursor: pointer;
+    flex-shrink: 0;
+  }
+  .gps-chip {
+    display: flex; align-items: center; gap: 8px;
+    background: rgba(0,122,110,0.15);
+    border: 1px solid rgba(0,122,110,0.3);
+    border-radius: 10px;
+    padding: 10px 14px;
+  }
+  .gps-text { font-size: 12px; color: var(--aramco-teal); font-family: 'IBM Plex Mono', monospace; }
+  .coc-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+  }
+  .coc-title { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 10px; }
+  .coc-steps { display: flex; gap: 0; }
+  .coc-step {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+    position: relative;
+  }
+  .coc-step:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    top: 13px; left: 55%;
+    width: 90%; height: 2px;
+    background: var(--border);
+  }
+  .coc-step.done::after { background: var(--accent); }
+  .coc-dot {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; z-index: 1;
+  }
+  .coc-step.done .coc-dot { background: var(--accent); border-color: var(--accent); }
+  .coc-step.active .coc-dot { border-color: var(--warn); background: rgba(245,166,35,0.15); }
+  .coc-step-label { font-size: 9px; color: var(--text3); text-align: center; }
+  .capture-footer { padding: 10px 20px 28px; }
+
+  /* SCREEN 8 — Visit Report */
+  .s-report {
+    background: var(--bg);
+    display: flex; flex-direction: column;
+  }
+  .report-header {
+    padding: 52px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .report-body { flex: 1; padding: 16px 20px; overflow-y: auto; }
+  .report-banner {
+    background: linear-gradient(135deg, rgba(0,112,60,0.2), rgba(0,176,80,0.1));
+    border: 1px solid rgba(0,176,80,0.25);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .report-banner-icon { font-size: 32px; }
+  .report-banner-title { font-size: 15px; font-weight: 700; color: var(--accent); }
+  .report-banner-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .report-fields {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .report-row {
+    display: flex; justify-content: space-between;
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .report-row:last-child { border-bottom: none; }
+  .rr-key { font-size: 12px; color: var(--text3); }
+  .rr-val { font-size: 12px; font-weight: 600; color: var(--text); text-align: right; }
+  .report-photos {
+    display: flex; gap: 8px; margin-bottom: 14px;
+  }
+  .report-photo {
+    flex: 1; height: 70px;
+    background: var(--surface2);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; overflow: hidden;
+  }
+  .sig-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .sig-label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+  .sig-area {
+    height: 70px;
+    background: var(--surface2);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text3); font-size: 13px; font-style: italic;
+    position: relative; overflow: hidden;
+  }
+  .sig-line {
+    position: absolute;
+    bottom: 20px; left: 20px; right: 20px;
+    height: 1px; background: var(--border);
+  }
+  .sig-drawn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 18px;
+    color: var(--text2);
+    font-style: italic;
+  }
+  .report-footer { padding: 10px 20px 28px; display: flex; gap: 10px; }
+  .btn-secondary {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    color: var(--text);
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-primary-sm {
+    flex: 1;
+    background: linear-gradient(135deg, #00B050, #00703C);
+    border: none;
+    border-radius: 14px;
+    padding: 14px;
+    color: white;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    font-family: 'IBM Plex Sans', sans-serif;
+    box-shadow: 0 4px 14px rgba(0,176,80,0.3);
+  }
+
+  /* SCREEN 9 — Complete */
+  .s-complete {
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px 28px;
+    text-align: center;
+  }
+  .complete-anim {
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(0,176,80,0.2) 0%, transparent 70%);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 52px;
+    animation: glow 2s ease-in-out infinite alternate;
+    margin-bottom: 24px;
+  }
+  @keyframes glow {
+    from { box-shadow: 0 0 20px rgba(0,176,80,0.2); }
+    to { box-shadow: 0 0 50px rgba(0,176,80,0.5); }
+  }
+  .complete-title { font-size: 24px; font-weight: 700; color: white; }
+  .complete-sub { font-size: 14px; color: var(--text2); margin-top: 8px; line-height: 1.5; }
+  .complete-stats {
+    display: flex; gap: 10px; margin-top: 28px; width: 100%;
+  }
+  .complete-stat {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 10px;
+  }
+  .cs-num { font-size: 22px; font-weight: 700; color: var(--accent); }
+  .cs-label { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .complete-cta { margin-top: 28px; width: 100%; }
+  .complete-share {
+    margin-top: 12px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    color: var(--text3); font-size: 13px; cursor: pointer;
+  }
+  .complete-share:hover { color: var(--accent); }
+
+  /* ── RIGHT PANEL: SPEC NOTES ── */
+  .spec-panel {
+    width: 280px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 100px;
+  }
+  .spec-title {
+    font-size: 11px; font-weight: 600;
+    color: var(--text3); letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 12px; padding-left: 4px;
+  }
+  .spec-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 10px;
+  }
+  .spec-card-title {
+    font-size: 12px; font-weight: 700;
+    color: var(--accent); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .spec-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    margin-bottom: 8px;
+  }
+  .spec-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--text3); flex-shrink: 0; margin-top: 6px; }
+  .spec-text { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .spec-code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: var(--accent);
+    margin-top: 8px;
+    white-space: pre;
+  }
+  .tech-tag {
+    display: inline-flex; align-items: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px; color: var(--text2);
+    margin: 2px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* Screen label */
+  .screen-label {
+    text-align: center;
+    margin-top: 14px;
+    font-size: 12px; color: var(--text3);
+    font-weight: 500;
+  }
+  .screen-label span { color: var(--accent); }
+
+  /* Clickable hint */
+  .tap-hint {
+    text-align: center;
+    margin-top: 8px;
+    font-size: 11px; color: var(--text3);
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 0; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">
+    <div class="logo-badge">SA</div>
+    <div>
+      <div class="header-title">NFC Driver Sample Collection</div>
+      <div class="header-sub">Interactive UI Prototype — Android App</div>
+    </div>
+  </div>
+  <div class="header-badge">For Internal Review · DCIT-SOW-2026-NFC-001</div>
+</div>
+
+<div class="workspace">
+
+  <!-- LEFT: FLOW SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-title">App Flow</div>
+
+    <div class="flow-item active" onclick="goTo(0)" id="flow-0">
+      <div class="flow-num">1</div>
+      <div class="flow-label">Login</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-item" onclick="goTo(1)" id="flow-1">
+      <div class="flow-num">2</div>
+      <div class="flow-label">OTP Verify</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-item" onclick="goTo(2)" id="flow-2">
+      <div class="flow-num">3</div>
+      <div class="flow-label">Shift Dashboard</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-item" onclick="goTo(3)" id="flow-3">
+      <div class="flow-num">4</div>
+      <div class="flow-label">NFC Scan</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-item" onclick="goTo(4)" id="flow-4">
+      <div class="flow-num">5</div>
+      <div class="flow-label">NFC Confirmed</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-item" onclick="goTo(5)" id="flow-5">
+      <div class="flow-num">6</div>
+      <div class="flow-label">Safety Checklist</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-item" onclick="goTo(6)" id="flow-6">
+      <div class="flow-num">7</div>
+      <div class="flow-label">Data Capture</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-item" onclick="goTo(7)" id="flow-7">
+      <div class="flow-num">8</div>
+      <div class="flow-label">Visit Report</div>
+    </div>
+    <div class="flow-arrow"></div>
+    <div class="flow-item" onclick="goTo(8)" id="flow-8">
+      <div class="flow-num">9</div>
+      <div class="flow-label">Complete ✓</div>
+    </div>
+  </div>
+
+  <!-- CENTER: PHONE -->
+  <div class="phone-area">
+    <div class="phone-outer">
+      <div class="phone-frame">
+        <div class="phone-notch">
+          <div class="notch-sensor"></div>
+          <div class="notch-cam"></div>
+        </div>
+
+        <div class="phone-screen">
+          <div class="status-bar">
+            <div class="status-time">09:41</div>
+            <div class="status-icons">
+              <span>▲▲▲</span>
+              <span>WiFi</span>
+              <span>⬛</span>
+            </div>
+          </div>
+
+          <div class="screens">
+
+            <!-- SCREEN 1: LOGIN -->
+            <div class="screen active s-login" id="s0">
+              <div class="login-logo-wrap"><div class="login-logo-inner">⬡</div></div>
+              <div class="login-title">Sample Collection</div>
+              <div class="login-sub">Jazan Laboratory Division</div>
+              <div class="aramco-badge">◆ Saudi Aramco</div>
+              <div class="login-form">
+                <div class="input-group">
+                  <div class="input-label">Employee ID or Mobile</div>
+                  <input class="input-field" type="text" placeholder="+966 5x xxx xxxx" value="+966 53 123 4567">
+                </div>
+                <button class="btn-primary" onclick="next()">Send OTP →</button>
+                <div style="text-align:center;font-size:12px;color:rgba(255,255,255,0.3);margin-top:4px">— or —</div>
+                <button class="btn-primary" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);box-shadow:none;" onclick="next()">Sign in with Aramco SSO</button>
+              </div>
+              <div class="login-footer">Secured · AES-256 · TLS 1.3</div>
+            </div>
+
+            <!-- SCREEN 2: OTP -->
+            <div class="screen s-otp" id="s1">
+              <div class="otp-icon">💬</div>
+              <div class="otp-title">Verify OTP</div>
+              <div class="otp-sub">6-digit code sent to<br><span class="otp-number">+966 53 123 4567</span></div>
+              <div class="otp-boxes">
+                <div class="otp-box filled">3</div>
+                <div class="otp-box filled">7</div>
+                <div class="otp-box filled">4</div>
+                <div class="otp-box filled">9</div>
+                <div class="otp-box active">_</div>
+                <div class="otp-box"></div>
+              </div>
+              <div class="otp-resend" style="margin-top:20px;">Didn't receive? <span>Resend (0:42)</span></div>
+              <button class="btn-primary" style="margin-top:32px;width:100%;" onclick="next()">Verify & Continue →</button>
+            </div>
+
+            <!-- SCREEN 3: DASHBOARD -->
+            <div class="screen s-dashboard" id="s2">
+              <div class="dash-header">
+                <div class="dash-greeting">Good morning,</div>
+                <div class="dash-name">Mohammed Al-Rashidi</div>
+                <div class="dash-shift-row">
+                  <div class="shift-card">
+                    <div class="shift-card-label">Shift</div>
+                    <div class="shift-card-val">Morning</div>
+                    <div class="shift-card-sub">07:00 – 15:00</div>
+                  </div>
+                  <div class="shift-card">
+                    <div class="shift-card-label">Route</div>
+                    <div class="shift-card-val">JRZ-04</div>
+                    <div class="shift-card-sub">Jazan Refinery</div>
+                  </div>
+                  <div class="shift-card">
+                    <div class="shift-card-label">Visits</div>
+                    <div class="shift-card-val">6</div>
+                    <div class="shift-card-sub">2 done</div>
+                  </div>
+                </div>
+              </div>
+              <div class="dash-body">
+                <div class="progress-bar-wrap">
+                  <div class="progress-label">
+                    <span class="progress-text">Shift Progress</span>
+                    <span class="progress-pct">33%</span>
+                  </div>
+                  <div class="progress-track"><div class="progress-fill"></div></div>
+                </div>
+                <div class="section-title">Today's Visits</div>
+                <div class="visit-list">
+                  <div class="visit-item done">
+                    <div class="visit-dot dot-done"></div>
+                    <div class="visit-info">
+                      <div class="visit-name">SP-001 · Crude Unit Inlet</div>
+                      <div class="visit-meta">Completed 08:14 · GPS ✓</div>
+                    </div>
+                    <div class="visit-status status-done">Done</div>
+                  </div>
+                  <div class="visit-item done">
+                    <div class="visit-dot dot-done"></div>
+                    <div class="visit-info">
+                      <div class="visit-name">SP-002 · Naphtha Stabiliser</div>
+                      <div class="visit-meta">Completed 09:02 · GPS ✓</div>
+                    </div>
+                    <div class="visit-status status-done">Done</div>
+                  </div>
+                  <div class="visit-item active-now" onclick="goTo(3)">
+                    <div class="visit-dot dot-active"></div>
+                    <div class="visit-info">
+                      <div class="visit-name">SP-003 · HDS Unit Feed</div>
+                      <div class="visit-meta">Due 09:30 · 0.4 km away</div>
+                    </div>
+                    <div class="visit-status status-now">Now ▶</div>
+                  </div>
+                  <div class="visit-item">
+                    <div class="visit-dot dot-pending"></div>
+                    <div class="visit-info">
+                      <div class="visit-name">SP-004 · Vacuum Distillation</div>
+                      <div class="visit-meta">Due 11:00</div>
+                    </div>
+                    <div class="visit-status status-pending">Pending</div>
+                  </div>
+                  <div class="visit-item">
+                    <div class="visit-dot dot-pending"></div>
+                    <div class="visit-info">
+                      <div class="visit-name">SP-005 · Desalter Outlet</div>
+                      <div class="visit-meta">Due 12:30</div>
+                    </div>
+                    <div class="visit-status status-pending">Pending</div>
+                  </div>
+                </div>
+              </div>
+              <div class="bottom-nav">
+                <div class="nav-item active"><div class="nav-icon">🏠</div><div class="nav-label">Shift</div></div>
+                <div class="nav-item"><div class="nav-icon">🗺️</div><div class="nav-label">Map</div></div>
+                <div class="nav-item"><div class="nav-icon">📋</div><div class="nav-label">Reports</div></div>
+                <div class="nav-item"><div class="nav-icon">👤</div><div class="nav-label">Profile</div></div>
+              </div>
+            </div>
+
+            <!-- SCREEN 4: NFC SCAN -->
+            <div class="screen s-nfc" id="s3">
+              <div class="nfc-header">
+                <div class="back-btn" onclick="prev()">←</div>
+                <div class="nfc-header-info">
+                  <div class="nfc-header-title">SP-003 · HDS Unit Feed</div>
+                  <div class="nfc-header-sub">Scan NFC tag to begin</div>
+                </div>
+              </div>
+              <div class="nfc-body">
+                <div class="nfc-point-card">
+                  <div class="nfc-point-label">Sample Point</div>
+                  <div class="nfc-point-name">HDS Unit Feed Line</div>
+                  <div class="nfc-point-meta">
+                    <div class="meta-pill">📍 Area 7, Zone B</div>
+                    <div class="meta-pill">🧪 Crude Oil</div>
+                    <div class="meta-pill">🌡 Ambient</div>
+                    <div class="meta-pill">⚠️ PPE Req.</div>
+                  </div>
+                </div>
+                <div class="nfc-scan-area">
+                  <div class="nfc-ring"></div>
+                  <div class="nfc-ring"></div>
+                  <div class="nfc-ring"></div>
+                  <div class="nfc-center">📡</div>
+                </div>
+                <div class="nfc-scan-label">Hold phone to NFC tag</div>
+                <div class="nfc-scan-sub">NTAG215 · ISO 14443-A</div>
+                <div class="nfc-fallback" onclick="goTo(4)">
+                  <span style="font-size:22px">📷</span>
+                  <div>
+                    <div class="nfc-fallback-text">Scan QR / Barcode instead</div>
+                    <div class="nfc-fallback-sub">Use if NFC tag is damaged</div>
+                  </div>
+                </div>
+              </div>
+              <!-- Simulate tap -->
+              <div style="padding:0 20px 28px;">
+                <button class="btn-primary" onclick="goTo(4)">Simulate NFC Tap ⚡</button>
+              </div>
+            </div>
+
+            <!-- SCREEN 5: NFC CONFIRMED -->
+            <div class="screen s-nfc-ok" id="s4">
+              <div class="nfc-ok-icon">✅</div>
+              <div class="nfc-ok-title">Sample Point Verified</div>
+              <div class="nfc-ok-sub">NFC tag matched. Work order validated against site records.</div>
+              <div class="nfc-ok-details">
+                <div class="detail-row">
+                  <span class="detail-key">Tag UID</span>
+                  <span class="detail-val" style="font-family:'IBM Plex Mono',monospace;font-size:12px;">04:A3:F2:1B:9C:D4</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-key">Sample Point</span>
+                  <span class="detail-val">SP-003 · HDS Feed</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-key">Work Order</span>
+                  <span class="detail-val">WO-2026-0341</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-key">Scan Time</span>
+                  <span class="detail-val">09:47:22 UTC+3</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-key">GPS Match</span>
+                  <span class="detail-val green">✓ Within 8m</span>
+                </div>
+                <div class="detail-row">
+                  <span class="detail-key">Status</span>
+                  <span class="detail-val green">✓ Authorised</span>
+                </div>
+              </div>
+              <div class="nfc-ok-cta">
+                <button class="btn-primary" onclick="goTo(5)">Begin Safety Checklist →</button>
+              </div>
+            </div>
+
+            <!-- SCREEN 6: CHECKLIST -->
+            <div class="screen s-checklist" id="s5">
+              <div class="checklist-header">
+                <div class="back-btn" onclick="prev()">←</div>
+                <div class="nfc-header-info">
+                  <div class="nfc-header-title">Safety Checklist</div>
+                  <div class="nfc-header-sub">SP-003 · HDS Unit Feed · Confirm each item</div>
+                </div>
+              </div>
+              <div class="checklist-progress">
+                <div class="cp-dot done"></div>
+                <div class="cp-dot active"></div>
+                <div class="cp-dot"></div>
+                <div class="cp-dot"></div>
+              </div>
+              <div class="checklist-count" id="check-count"><span>0</span> of 8 confirmed</div>
+              <div class="checklist-body">
+
+                <div class="checklist-section">
+                  <div class="checklist-section-title">🦺 Personal Protective Equipment</div>
+
+                  <div class="check-item checked-item" onclick="toggleCheck(this)">
+                    <div class="check-img">⛑️</div>
+                    <div class="check-text">
+                      <div class="check-label">Hard Hat</div>
+                      <div class="check-sub">ANSI Z89.1 · Class E rated</div>
+                    </div>
+                    <div class="check-box">✓</div>
+                  </div>
+
+                  <div class="check-item checked-item" onclick="toggleCheck(this)">
+                    <div class="check-img">🥽</div>
+                    <div class="check-text">
+                      <div class="check-label">Safety Glasses</div>
+                      <div class="check-sub">Chemical splash protection</div>
+                    </div>
+                    <div class="check-box">✓</div>
+                  </div>
+
+                  <div class="check-item checked-item" onclick="toggleCheck(this)">
+                    <div class="check-img">🧤</div>
+                    <div class="check-text">
+                      <div class="check-label">Chemical Resistant Gloves</div>
+                      <div class="check-sub">Nitrile or neoprene</div>
+                    </div>
+                    <div class="check-box">✓</div>
+                  </div>
+
+                  <div class="check-item" onclick="toggleCheck(this)">
+                    <div class="check-img">🥼</div>
+                    <div class="check-text">
+                      <div class="check-label">FR Coverall</div>
+                      <div class="check-sub">Fire-resistant · Required in process areas</div>
+                    </div>
+                    <div class="check-box"></div>
+                  </div>
+                </div>
+
+                <div class="checklist-section">
+                  <div class="checklist-section-title">⚠️ Site Safety</div>
+
+                  <div class="check-item checked-item" onclick="toggleCheck(this)">
+                    <div class="check-img">🚧</div>
+                    <div class="check-text">
+                      <div class="check-label">Area Clear</div>
+                      <div class="check-sub">No active maintenance in zone</div>
+                    </div>
+                    <div class="check-box">✓</div>
+                  </div>
+
+                  <div class="check-item" onclick="toggleCheck(this)">
+                    <div class="check-img">💨</div>
+                    <div class="check-text">
+                      <div class="check-label">H₂S Monitor Reading</div>
+                      <div class="check-sub">Must read &lt;10 ppm to proceed</div>
+                    </div>
+                    <div class="check-box"></div>
+                  </div>
+                </div>
+
+                <div class="checklist-section">
+                  <div class="checklist-section-title">🧪 Sample Preparation</div>
+
+                  <div class="check-item checked-item" onclick="toggleCheck(this)">
+                    <div class="check-img">🫙</div>
+                    <div class="check-text">
+                      <div class="check-label">Correct Container</div>
+                      <div class="check-sub">Glass amber 250ml · sealed</div>
+                    </div>
+                    <div class="check-box">✓</div>
+                  </div>
+
+                  <div class="check-item" onclick="toggleCheck(this)">
+                    <div class="check-img">🏷️</div>
+                    <div class="check-text">
+                      <div class="check-label">Container Labelled</div>
+                      <div class="check-sub">SP-003 · WO-2026-0341</div>
+                    </div>
+                    <div class="check-box"></div>
+                  </div>
+                </div>
+
+              </div>
+              <div class="checklist-footer">
+                <div class="checklist-locked" id="checklist-lock">⚠️ Confirm all items to unlock collection</div>
+                <button class="btn-primary" id="checklist-cta" style="opacity:0.4;pointer-events:none;" onclick="goTo(6)">Start Sample Collection →</button>
+              </div>
+            </div>
+
+            <!-- SCREEN 7: DATA CAPTURE -->
+            <div class="screen s-capture" id="s6">
+              <div class="capture-header">
+                <div class="back-btn" onclick="prev()">←</div>
+                <div class="nfc-header-info">
+                  <div class="nfc-header-title">Sample Data Entry</div>
+                  <div class="nfc-header-sub">SP-003 · HDS Unit Feed</div>
+                </div>
+              </div>
+              <div class="capture-body">
+                <div class="gps-chip">
+                  <span>📍</span>
+                  <span class="gps-text">16.9018°N  42.5704°E  ±6m</span>
+                </div>
+                <div class="field-row">
+                  <div class="field-group" style="flex:1">
+                    <div class="field-label">Sample Type</div>
+                    <select class="field-select">
+                      <option>Crude Oil</option>
+                      <option>Naphtha</option>
+                      <option>Gas Oil</option>
+                    </select>
+                  </div>
+                  <div class="field-group" style="flex:1">
+                    <div class="field-label">Qty (ml)</div>
+                    <input class="field-input" type="number" value="250">
+                  </div>
+                </div>
+                <div class="field-row">
+                  <div class="field-group" style="flex:1">
+                    <div class="field-label">Temperature</div>
+                    <input class="field-input" type="text" value="38.2 °C">
+                  </div>
+                  <div class="field-group" style="flex:1">
+                    <div class="field-label">Container</div>
+                    <select class="field-select">
+                      <option>Glass Amber</option>
+                      <option>HDPE</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="field-group">
+                  <div class="field-label">Batch / Lot Ref.</div>
+                  <input class="field-input" type="text" value="JRZ-2026-0341-C">
+                </div>
+                <div class="field-group">
+                  <div class="field-label">Photos</div>
+                  <div class="photo-row">
+                    <div class="photo-thumb" style="background:#1a3a2a;display:flex;align-items:center;justify-content:center;font-size:24px;">🧪</div>
+                    <div class="photo-thumb" style="background:#1a2a3a;display:flex;align-items:center;justify-content:center;font-size:24px;">🏭</div>
+                    <div class="photo-add">+</div>
+                  </div>
+                </div>
+                <div class="field-group">
+                  <div class="field-label">Notes / Exceptions</div>
+                  <input class="field-input" type="text" placeholder="Any observations…">
+                </div>
+                <div class="coc-section">
+                  <div class="coc-title">Chain of Custody</div>
+                  <div class="coc-steps">
+                    <div class="coc-step done">
+                      <div class="coc-dot">✓</div>
+                      <div class="coc-step-label">Picked</div>
+                    </div>
+                    <div class="coc-step active">
+                      <div class="coc-dot">⬡</div>
+                      <div class="coc-step-label">Sealed</div>
+                    </div>
+                    <div class="coc-step">
+                      <div class="coc-dot">⬡</div>
+                      <div class="coc-step-label">Stored</div>
+                    </div>
+                    <div class="coc-step">
+                      <div class="coc-dot">⬡</div>
+                      <div class="coc-step-label">Transit</div>
+                    </div>
+                    <div class="coc-step">
+                      <div class="coc-dot">⬡</div>
+                      <div class="coc-step-label">Handover</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="capture-footer">
+                <button class="btn-primary" onclick="goTo(7)">Generate Visit Report →</button>
+              </div>
+            </div>
+
+            <!-- SCREEN 8: VISIT REPORT -->
+            <div class="screen s-report" id="s7">
+              <div class="report-header">
+                <div class="back-btn" onclick="prev()">←</div>
+                <div class="nfc-header-info">
+                  <div class="nfc-header-title">Visit Report</div>
+                  <div class="nfc-header-sub">Auto-generated · Review & Sign</div>
+                </div>
+              </div>
+              <div class="report-body">
+                <div class="report-banner">
+                  <div class="report-banner-icon">📄</div>
+                  <div>
+                    <div class="report-banner-title">Report Ready</div>
+                    <div class="report-banner-sub">All fields captured · Awaiting signature</div>
+                  </div>
+                </div>
+                <div class="section-title">Visit Summary</div>
+                <div class="report-fields">
+                  <div class="report-row"><span class="rr-key">Sample Point</span><span class="rr-val">SP-003 · HDS Unit Feed</span></div>
+                  <div class="report-row"><span class="rr-key">Work Order</span><span class="rr-val">WO-2026-0341</span></div>
+                  <div class="report-row"><span class="rr-key">Sample Type</span><span class="rr-val">Crude Oil</span></div>
+                  <div class="report-row"><span class="rr-key">Quantity</span><span class="rr-val">250 ml · Glass Amber</span></div>
+                  <div class="report-row"><span class="rr-key">Temperature</span><span class="rr-val">38.2 °C</span></div>
+                  <div class="report-row"><span class="rr-key">Collection Time</span><span class="rr-val">09:51:08 UTC+3</span></div>
+                  <div class="report-row"><span class="rr-key">GPS</span><span class="rr-val">16.9018°N 42.5704°E</span></div>
+                  <div class="report-row"><span class="rr-key">NFC Tag</span><span class="rr-val">04:A3:F2:1B:9C:D4</span></div>
+                  <div class="report-row"><span class="rr-key">Chain of Custody</span><span class="rr-val" style="color:var(--accent)">Picked → Sealed</span></div>
+                </div>
+                <div class="section-title">Photo Evidence</div>
+                <div class="report-photos">
+                  <div class="report-photo" style="font-size:28px;">🧪</div>
+                  <div class="report-photo" style="font-size:28px;">🏭</div>
+                  <div class="report-photo" style="color:var(--text3);font-size:12px;">+ 0</div>
+                </div>
+                <div class="sig-box">
+                  <div class="sig-label">Driver Signature</div>
+                  <div class="sig-area">
+                    <div class="sig-line"></div>
+                    <div class="sig-drawn">M. Al-Rashidi</div>
+                  </div>
+                </div>
+              </div>
+              <div class="report-footer">
+                <button class="btn-secondary">Share PDF 📤</button>
+                <button class="btn-primary-sm" onclick="goTo(8)">Submit & Close ✓</button>
+              </div>
+            </div>
+
+            <!-- SCREEN 9: COMPLETE -->
+            <div class="screen s-complete" id="s8">
+              <div class="complete-anim">✅</div>
+              <div class="complete-title">Visit Complete!</div>
+              <div class="complete-sub">SP-003 · HDS Unit Feed<br>Report submitted · PDF sent to lab</div>
+              <div class="complete-stats">
+                <div class="complete-stat">
+                  <div class="cs-num">3</div>
+                  <div class="cs-label">Done today</div>
+                </div>
+                <div class="complete-stat">
+                  <div class="cs-num">3</div>
+                  <div class="cs-label">Remaining</div>
+                </div>
+                <div class="complete-stat">
+                  <div class="cs-num">50%</div>
+                  <div class="cs-label">Progress</div>
+                </div>
+              </div>
+              <div class="complete-cta">
+                <button class="btn-primary" onclick="goTo(2)">← Back to Shift</button>
+              </div>
+              <div class="complete-share">📤 Share report via email / WhatsApp</div>
+            </div>
+
+          </div><!-- /screens -->
+        </div><!-- /phone-screen -->
+      </div><!-- /phone-frame -->
+
+      <div class="screen-label" id="screen-label">Screen 1 of 9 — <span>Login</span> · Tap to navigate →</div>
+      <div class="tap-hint">← Click sidebar or buttons inside the phone to navigate →</div>
+    </div>
+  </div>
+
+  <!-- RIGHT: SPEC PANEL -->
+  <div class="spec-panel">
+    <div class="spec-title">Dev Notes</div>
+
+    <div class="spec-card" id="spec-0">
+      <div class="spec-card-title">🔐 Authentication</div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">OTP via SMS (primary). SSO via SAML 2.0 / OAuth 2.0 (if Aramco IdP confirmed)</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">JWT short-lived tokens + refresh rotation, tied to device fingerprint</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Biometric re-auth for subsequent unlocks</div></div>
+      <div class="spec-code">POST /auth/otp/request
+POST /auth/otp/verify
+→ { access_token, refresh_token }</div>
+    </div>
+
+    <div class="spec-card" id="spec-1" style="display:none">
+      <div class="spec-card-title">🔐 OTP Flow</div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">6-digit OTP, 5-min expiry, 3 attempt limit before lockout</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Auto-read OTP from SMS via Android SMS Retriever API</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Resend with 60s cooldown, max 3 resends</div></div>
+      <div class="spec-code">// Android SMS Retriever
+SmsRetrieverClient client =
+  SmsRetriever.getClient(this);</div>
+    </div>
+
+    <div class="spec-card" id="spec-2" style="display:none">
+      <div class="spec-card-title">📅 Shift & Route</div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Shift data fetched at login + cached to SQLite for offline use</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Visit order from backend (proximity algorithm) — non-reorderable without supervisor override</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Map via Google Maps SDK for Android (or Mapbox for offline tile support)</div></div>
+      <div class="spec-code">GET /shifts/today
+→ { visits[], route, cached_at }
+// Stored in SQLite on device</div>
+    </div>
+
+    <div class="spec-card" id="spec-3" style="display:none">
+      <div class="spec-card-title">📡 NFC Scanning</div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Android NFC API (NfcAdapter). Foreground dispatch for active scan mode</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Read NDEF message + UID from NTAG213/215/216 (TBC with Aramco)</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">UID validated against work order via API (or cached map offline)</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">QR/barcode fallback via ML Kit Barcode Scanner</div></div>
+      <div class="spec-code">// NFC Intent
+NfcAdapter.ACTION_NDEF_DISCOVERED
+→ extract UID → validate(uid, workOrder)
+→ MATCH | MISMATCH | NOT_FOUND</div>
+    </div>
+
+    <div class="spec-card" id="spec-4" style="display:none">
+      <div class="spec-card-title">✅ Tag Validation</div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">UID binding stored in backend — no UID spoofing possible</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">GPS geofence check: must be within configurable radius (default 50m) of sample point coordinate</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">All scan events logged immutably (UID, timestamp, GPS, result)</div></div>
+      <div class="spec-code">// Validation response
+{ matched: true, point: "SP-003",
+  gps_delta_m: 8,
+  authorised: true }</div>
+    </div>
+
+    <div class="spec-card" id="spec-5" style="display:none">
+      <div class="spec-card-title">☑️ Checklist Engine</div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Checklist items are backend-configurable per sample type and hazard zone</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">All items must be checked before "Start Collection" unlocks</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Checklist completion logged as CoC "Picked" event with timestamp + GPS</div></div>
+      <div class="spec-code">// Checklist config (backend)
+{ sample_type: "crude_oil",
+  items: [ { id, label, mandatory } ],
+  cached: true }</div>
+    </div>
+
+    <div class="spec-card" id="spec-6" style="display:none">
+      <div class="spec-card-title">🧪 Data Capture</div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">GPS auto-captured via FusedLocationProvider. Accuracy threshold configurable</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Photos: CameraX API, JPEG compressed &lt;800KB, EXIF geo-tagged</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Temperature: manual entry or Bluetooth sensor (future hook)</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">CoC events written atomically to local DB + sync queue</div></div>
+      <div class="spec-code">// Offline queue entry
+{ visit_id, type: "SEALED",
+  ts_utc, gps, photos[],
+  synced: false }</div>
+    </div>
+
+    <div class="spec-card" id="spec-7" style="display:none">
+      <div class="spec-card-title">📄 Report Generation</div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">PDF generated on-device using iText / Android PDF Canvas API</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Template: Aramco-branded, bilingual (EN/AR), embedded photos + map thumbnail</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Signature captured via touch canvas, embedded as PNG in PDF</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Share via Intent to email, WhatsApp, or any Android share target</div></div>
+      <div class="spec-code">// PDF output
+visit_report_SP003_20260310.pdf
+Shared via: ACTION_SEND intent</div>
+    </div>
+
+    <div class="spec-card" id="spec-8" style="display:none">
+      <div class="spec-card-title">🔄 Sync & Offline</div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">WorkManager for background sync — fires when connectivity restored</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Sync queue: ordered by timestamp, retry on failure with exponential backoff</div></div>
+      <div class="spec-item"><div class="spec-dot"></div><div class="spec-text">Conflict resolution: server authoritative for config; field data always preserved</div></div>
+      <div class="spec-code">// WorkManager constraint
+Constraints.Builder()
+  .setRequiredNetworkType(
+    NetworkType.CONNECTED)
+  .build()</div>
+    </div>
+
+    <!-- Stack tags always visible -->
+    <div class="spec-card">
+      <div class="spec-card-title">🛠 Tech Stack</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
+        <span class="tech-tag">Kotlin</span>
+        <span class="tech-tag">Android NFC API</span>
+        <span class="tech-tag">CameraX</span>
+        <span class="tech-tag">SQLite</span>
+        <span class="tech-tag">WorkManager</span>
+        <span class="tech-tag">FCM</span>
+        <span class="tech-tag">ML Kit</span>
+        <span class="tech-tag">iText PDF</span>
+        <span class="tech-tag">Maps SDK</span>
+        <span class="tech-tag">AES-256</span>
+        <span class="tech-tag">TLS 1.3</span>
+        <span class="tech-tag">JWT</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const screenNames = [
+    "Login",
+    "OTP Verification",
+    "Shift Dashboard",
+    "NFC Scan",
+    "NFC Confirmed",
+    "Safety Checklist",
+    "Data Capture",
+    "Visit Report",
+    "Visit Complete"
+  ];
+
+  let current = 0;
+  const total = 9;
+
+  const specCards = {
+    0: 'spec-0', 1: 'spec-1', 2: 'spec-2',
+    3: 'spec-3', 4: 'spec-4', 5: 'spec-5',
+    6: 'spec-6', 7: 'spec-7', 8: 'spec-8'
+  };
+
+  function goTo(idx) {
+    if (idx < 0 || idx >= total) return;
+
+    // Update screens
+    const prev_screen = document.getElementById('s' + current);
+    const next_screen = document.getElementById('s' + idx);
+    prev_screen.classList.remove('active');
+    prev_screen.classList.add('exit');
+    setTimeout(() => prev_screen.classList.remove('exit'), 300);
+    next_screen.classList.add('active');
+
+    // Update sidebar
+    document.getElementById('flow-' + current).classList.remove('active');
+    document.getElementById('flow-' + idx).classList.add('active');
+
+    // Update spec panel
+    const oldSpec = document.getElementById(specCards[current]);
+    if (oldSpec) oldSpec.style.display = 'none';
+    const newSpec = document.getElementById(specCards[idx]);
+    if (newSpec) newSpec.style.display = 'block';
+
+    // Update label
+    document.getElementById('screen-label').innerHTML =
+      `Screen ${idx+1} of ${total} — <span>${screenNames[idx]}</span>`;
+
+    current = idx;
+  }
+
+  function next() { goTo(current + 1); }
+  function prev() { goTo(current - 1); }
+
+  // Init checklist count on load
+  updateChecklistState();
+
+  function toggleCheck(item) {
+    item.classList.toggle('checked-item');
+    const box = item.querySelector('.check-box');
+    if (item.classList.contains('checked-item')) {
+      box.textContent = '✓';
+    } else {
+      box.textContent = '';
+    }
+    updateChecklistState();
+  }
+
+  function updateChecklistState() {
+    const screen = document.getElementById('s5');
+    if (!screen) return;
+    const items = screen.querySelectorAll('.check-item');
+    const checked = screen.querySelectorAll('.check-item.checked-item').length;
+    const total = items.length;
+    const countEl = document.getElementById('check-count');
+    if (countEl) countEl.innerHTML = `<span>${checked}</span> of ${total} confirmed`;
+    const cta = document.getElementById('checklist-cta');
+    const lock = document.getElementById('checklist-lock');
+    if (checked === total) {
+      if (cta) { cta.style.opacity = '1'; cta.style.pointerEvents = 'all'; }
+      if (lock) { lock.style.color = 'var(--accent)'; lock.textContent = '✓ All items confirmed — ready to collect'; }
+    } else {
+      if (cta) { cta.style.opacity = '0.4'; cta.style.pointerEvents = 'none'; }
+      if (lock) { lock.style.color = 'var(--warn)'; lock.textContent = `⚠️ ${total - checked} item${total-checked>1?'s':''} remaining`; }
+    }
+  }
+</script>
+</body>
+</html>
